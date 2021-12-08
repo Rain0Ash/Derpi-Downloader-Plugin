@@ -21,6 +21,7 @@
     try {
         // noinspection JSUnresolvedFunction
         GM_addStyle(GM_getResourceText("sweetalert2css"));
+        // noinspection JSUnresolvedFunction
         GM_addStyle(GM_getResourceText("sweetalert2dark"));
     } catch (e) {
 
@@ -30,6 +31,19 @@
     const question_limit_for_artist = 30;
     const question_limit_for_editor = 5;
     const question_limit_for_oc = 5;
+
+    function PopupCenter(url, title, w, h) {
+        const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+        const dualScreenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+
+        const width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+        const height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+
+        const systemZoom = width / window.screen.availWidth;
+        const left = (width - w) / 2 / systemZoom + dualScreenLeft
+        const top = (height - h) / 2 / systemZoom + dualScreenTop
+        return window.open(url, title, `scrollbars=yes,width=${w / systemZoom}, height=${h / systemZoom}, top=${top}, left=${left}`)
+    }
 
     function Send(data) {
         try {
@@ -41,7 +55,8 @@
             const port = 18432;
             const address = `${site}:${port}`;
 
-            const handle = window.open(encodeURI(`https://${address}/${window.location.hostname}/download/${btoa(data)}`));
+            const uri = encodeURI(`https://${address}/${window.location.hostname}?download=${btoa(data)}`);
+            const handle = PopupCenter(uri, "_blank", 300, 300);
         } catch (e) {
             alert(e);
         }
@@ -78,7 +93,7 @@
 
                         try {
                             Swal.fire({
-                                title: `<font size="3px"> You want to download <font size="4px" color="#7cfc00">${count}</font> images of <br><font size="3px" color="orange">${tagname}</font> ?</font>`,
+                                title: `<font size="3px">Do you want to download <font size="4px" color="#7cfc00">${count}</font> images of <br><font size="3px" color="orange">${tagname}</font> ?</font>`,
                                 showDenyButton: true,
                                 confirmButtonText: 'Download',
                                 denyButtonText: `Cancel`,
