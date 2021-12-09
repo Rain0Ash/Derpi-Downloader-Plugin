@@ -1,7 +1,9 @@
 // ==UserScript==
 // @name         Derpibooru downloader plugin
 // @namespace    derpibooru.org
-// @version      0.1
+// @version      0.2
+// @updateURL    https://github.com/Rain0Ash/Derpi-Downloader-Plugin/raw/master/DerpiDownloaderPlugin.user.js
+// @downloadURL  https://github.com/Rain0Ash/Derpi-Downloader-Plugin/raw/master/DerpiDownloaderPlugin.user.js
 // @description  None
 // @author       Rain0Ash
 // @match        https://derpibooru.org/*
