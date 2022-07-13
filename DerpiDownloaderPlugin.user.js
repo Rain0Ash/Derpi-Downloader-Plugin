@@ -8,12 +8,14 @@
 // @author       Rain0Ash
 // @match        https://derpibooru.org/*
 // @match        https://furbooru.org/*
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
-// @require      https://cdn.jsdelivr.net/npm/sweetalert2@11.3.0/dist/sweetalert2.all.min.js
-// @resource     sweetalert2css https://cdn.jsdelivr.net/npm/sweetalert2@11.3.0/dist/sweetalert2.min.css
-// @resource     sweetalert2dark https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5.0.8/dark.min.css
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js#sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=
+// @require      https://cdn.jsdelivr.net/npm/sweetalert2@11.3.0/dist/sweetalert2.all.min.js#sha256-nk6ExuG7ckFYKC1p3efjdB14TU+pnGwTra1Fnm6FvZ0=
+// @resource     sweetalert2css https://cdn.jsdelivr.net/npm/sweetalert2@11.3.0/dist/sweetalert2.min.css#sha256-nFFDxS+xhna4bwS24M3iV8ADBz/vfg1vdrL8o7dSliQ=
+// @resource     sweetalert2dark https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5.0.8/dark.min.css#sha256-cdXZTh05rkMjO71L2RPaa5OHSDXKAxKvuBAmCOGMHNQ=
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
+// @grant        GM_xmlhttpRequest
+// @connect      localhost
 // ==/UserScript==
 
 
@@ -30,13 +32,14 @@
     }
 
     const debug = true;
+    const httpsstatus = true;
     const question_limit_for_artist = 30;
     const question_limit_for_editor = 5;
     const question_limit_for_oc = 5;
 
     function PopupCenter(url, title, w, h) {
-        const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
-        const dualScreenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+        const dualScreenLeft = window?.screenLeft ?? window.screenX;
+        const dualScreenTop = window?.screenTop ?? window.screenY;
 
         const width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
         const height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
@@ -47,20 +50,71 @@
         return window.open(url, title, `scrollbars=yes,width=${w / systemZoom}, height=${h / systemZoom}, top=${top}, left=${left}`)
     }
 
-    function Send(data) {
+    function Send(data, https) {
+        if (https === undefined) {
+            https = httpsstatus;
+        }
+
         try {
             if (debug) {
-                console.log(data);
+                console.log(`Request data: ${data}. Https status: ${https}`);
             }
 
             const site = "localhost"
             const port = 18432;
             const address = `${site}:${port}`;
 
-            const uri = encodeURI(`https://${address}/${window.location.hostname}?download=${btoa(data)}`);
-            const handle = PopupCenter(uri, "_blank", 300, 300);
+            const uri = `${https || https === null ? "https" : "http"}://${address}/${window.location.hostname}`;
+
+            try {
+                const post = JSON.stringify({download: data});
+                let successful = undefined;
+
+                GM_xmlhttpRequest({
+                    method: 'POST',
+                    timeout: 1000,
+                    url: uri,
+                    data: post,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    onload: function (event) {
+                        if (debug) {
+                            console.log(`Server return: ${event.responseText}`);
+                        }
+
+                        successful = true;
+                        return successful;
+                    },
+                    ontimeout: function (event) {
+                        if (debug) {
+                            console.log(`Timeout of https: ${https}`);
+                        }
+
+                        if (https === null) {
+                            return Send(data, false);
+                        }
+
+                        Swal.fire({
+                            title: `<font size="3px">Server connection timeout for <br><font size="3px" color="orange">${data}</font> request.</font>`,
+                            confirmButtonText: 'Confirm'
+                        });
+
+                        successful = false;
+                        return successful;
+                    }
+                });
+
+                return successful !== undefined ? successful : true;
+            }
+            catch (e){
+                /*const get = encodeURI(`${uri}?download=${btoa(data)}`);
+                const handle = PopupCenter(get, "_blank", 300, 300);*/
+                return false;
+            }
         } catch (e) {
             alert(e);
+            return false;
         }
     }
 
@@ -145,11 +199,18 @@
                 "padding": "4px 24px",
                 "border": "none",
                 "cursor": "pointer",
-                "border-radius": "5px"
-            })
+                "border-radius": "5px",
+            });
 
             download_node.on("click", () => {
-                Send(`id:${id}`)
+                download_node.css("background-color", "#CC5");
+                const result = Send(`id:${id}`);
+                if (!result){
+                    download_node.css("background-color", "#C55");
+                    return;
+                }
+
+                download_node.css("background-color", "#5C5");
             });
 
             download_node.insertAfter(image.children().last());
@@ -178,10 +239,17 @@
                 "border": "none",
                 "cursor": "pointer",
                 "border-radius": "5px"
-            })
+            });
 
             download_node.on("click", () => {
-                Send(`id:${id}`)
+                download_node.css("background-color", "#CC5");
+                const result = Send(`id:${id}`);
+                if (!result){
+                    download_node.css("background-color", "#C55");
+                    return;
+                }
+
+                download_node.css("background-color", "#5C5");
             });
 
             download_node.insertAfter(image.children().last());
